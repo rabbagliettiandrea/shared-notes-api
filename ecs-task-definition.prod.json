@@ -8,8 +8,34 @@
   "taskRoleArn": "arn:aws:iam::502236492999:role/ecsTaskRole",
   "containerDefinitions": [
     {
+      "name": "migration",
+      "image": "502236492999.dkr.ecr.eu-central-1.amazonaws.com/shared-notes-api:latest",
+      "essential": false,
+      "command": ["alembic", "upgrade", "head"],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-central-1:502236492999:secret:shared-notes/database-url"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/shared-notes-api",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "migration"
+        }
+      }
+    },
+    {
       "name": "shared-notes-api",
       "image": "502236492999.dkr.ecr.eu-central-1.amazonaws.com/shared-notes-api:latest",
+      "dependsOn": [
+        {
+          "containerName": "migration",
+          "condition": "SUCCESS"
+        }
+      ],
       "portMappings": [
         {
           "containerPort": 8000,
