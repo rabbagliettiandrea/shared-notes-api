@@ -1,18 +1,116 @@
-name: Deploy
+name: Deploy to AWS ECS
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: shared-notes-api
+  ECS_SERVICE: shared-notes-api-service
+  ECS_CLUSTER: shared-notes-cluster
+  ECS_TASK_DEFINITION: ecs-task-definition.json
+  CONTAINER_NAME: shared-notes-api
 
 jobs:
-
-  build:
-
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build a docker container and push it to ECR
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        
+        # Push the image
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Download task definition
+      run: |
+        aws ecs describe-task-definition \
+          --task-definition shared-notes-api \
+          --query taskDefinition > task-definition.json
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        container-name: ${{ env.CONTAINER_NAME }}
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE }}
+        cluster: ${{ env.ECS_CLUSTER }}
+        wait-for-service-stability: true
+
+    - name: Get service URL
+      id: get-url
+      run: |
+        ALB_DNS=$(aws elbv2 describe-load-balancers \
+          --names shared-notes-alb \
+          --query 'LoadBalancers[0].DNSName' \
+          --output text)
+        echo "api_url=http://$ALB_DNS" >> $GITHUB_OUTPUT
+
+    - name: Test API endpoints
+      run: |
+        API_URL=${{ steps.get-url.outputs.api_url }}
+        echo "Testing API at: $API_URL"
+        
+        # Wait for service to be ready
+        echo "Waiting for service to be ready..."
+        for i in {1..30}; do
+          if curl -f "$API_URL/health" > /dev/null 2>&1; then
+            echo "✅ API is ready!"
+            break
+          fi
+          echo "Attempt $i/30: API not ready yet, waiting 10 seconds..."
+          sleep 10
+        done
+        
+        # Test health endpoint
+        echo "Testing health endpoint..."
+        curl -f "$API_URL/health" || exit 1
+        
+        # Test root endpoint
+        echo "Testing root endpoint..."
+        curl -f "$API_URL/" || exit 1
+        
+        echo "✅ All API tests passed!"
+
+    - name: Deployment Status
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo "🌐 API URL: ${{ steps.get-url.outputs.api_url }}"
+        echo "📊 ECS Console: https://console.aws.amazon.com/ecs/home?region=${{ env.AWS_REGION }}#/clusters/${{ env.ECS_CLUSTER }}/services"
+        echo "🔍 Monitor logs: aws logs tail /ecs/shared-notes-api --follow --profile ${{ secrets.AWS_PROFILE }}"

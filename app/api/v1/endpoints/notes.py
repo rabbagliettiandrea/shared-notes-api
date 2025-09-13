@@ -2,7 +2,6 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_
-from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
