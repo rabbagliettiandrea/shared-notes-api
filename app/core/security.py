@@ -60,14 +60,14 @@ def verify_token(token: str, token_type: str = "access") -> dict:
         if username is None or token_type_from_payload != token_type:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
+                detail="Token non valido",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return payload
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Token non valido",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -84,7 +84,7 @@ async def get_current_user(
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Token non valido",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -94,7 +94,7 @@ async def get_current_user(
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            detail="Utente non trovato",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -104,5 +104,5 @@ async def get_current_user(
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """Get current active user"""
     if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise HTTPException(status_code=400, detail="Utente inattivo")
     return current_user

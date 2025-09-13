@@ -154,7 +154,7 @@ async def update_note(
         if not share:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions to update this note"
+                detail="Non hai i permessi sufficienti per aggiornare questa nota"
             )
         
         # Get the note
@@ -192,13 +192,13 @@ async def delete_note(
     if not note:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Note not found or you don't have permission to delete it"
+            detail="Nota non trovata o non hai i permessi per eliminarla"
         )
     
     await db.delete(note)
     await db.commit()
     
-    return {"message": "Note deleted successfully"}
+    return {"message": "Nota eliminata con successo"}
 
 
 @router.post("/{note_id}/share")
@@ -219,7 +219,7 @@ async def share_note(
     if not note:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Note not found or you don't have permission to share it"
+            detail="Nota non trovata o non hai i permessi per condividere la nota"
         )
     
     # Check if target user exists
@@ -229,7 +229,7 @@ async def share_note(
     if not target_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Target user not found"
+            detail="Utente non trovato"
         )
     
     # Check if note is already shared with this user
@@ -254,7 +254,7 @@ async def share_note(
     
     await db.commit()
     
-    return {"message": f"Note shared with user {user_id} with {permission} permission"}
+    return {"message": f"Nota condivisa con l'utente {user_id} con permesso {permission}"}
 
 
 @router.delete("/{note_id}/share/{user_id}")
@@ -274,7 +274,7 @@ async def unshare_note(
     if not note:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Note not found or you don't have permission to unshare it"
+            detail="Nota non trovata o non hai i permessi per smettere di condividere la nota"
         )
     
     # Find and delete the share
@@ -288,10 +288,10 @@ async def unshare_note(
     if not note_share:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Share not found"
+            detail="Condivisione non trovata"
         )
     
     await db.delete(note_share)
     await db.commit()
     
-    return {"message": f"Note unshared with user {user_id}"}
+    return {"message": f"Nota smessa di essere condivisa con l'utente {user_id}"}
