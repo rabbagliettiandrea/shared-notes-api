@@ -139,7 +139,6 @@ aws-credentials.json
 # Temporary files
 *.tmp
 *.temp
-ecs-task-definition-updated.json
 
 # IDE files
 .vscode/

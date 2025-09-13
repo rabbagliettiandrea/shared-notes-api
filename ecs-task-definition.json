@@ -4,12 +4,12 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskRole",
+  "executionRoleArn": "arn:aws:iam::502236492999:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::502236492999:role/ecsTaskRole",
   "containerDefinitions": [
     {
       "name": "shared-notes-api",
-      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/shared-notes-api:latest",
+      "image": "502236492999.dkr.ecr.eu-central-1.amazonaws.com/shared-notes-api:latest",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -42,15 +42,15 @@
       "secrets": [
         {
           "name": "DATABASE_URL",
-          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:shared-notes/database-url"
+          "valueFrom": "arn:aws:secretsmanager:eu-central-1:502236492999:secret:shared-notes/database-url"
         },
         {
           "name": "REDIS_URL",
-          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:shared-notes/redis-url"
+          "valueFrom": "arn:aws:secretsmanager:eu-central-1:502236492999:secret:shared-notes/redis-url"
         },
         {
           "name": "SECRET_KEY",
-          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:shared-notes/secret-key"
+          "valueFrom": "arn:aws:secretsmanager:eu-central-1:502236492999:secret:shared-notes/secret-key"
         }
       ],
       "logConfiguration": {

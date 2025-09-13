@@ -7,6 +7,7 @@ on:
     branches: [ main ]
 
 env:
+  AWS_ACCOUNT_ID: 502236492999
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: shared-notes-api
   ECS_SERVICE: shared-notes-api-service
@@ -51,27 +52,33 @@ jobs:
         
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Download task definition
-      run: |
-        aws ecs describe-task-definition \
-          --task-definition shared-notes-api \
-          --query taskDefinition > task-definition.json
-
-    - name: Fill in the new image ID in the Amazon ECS task definition
+    - name: Update task definition with new image
       id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: task-definition.json
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
+      run: |
+        # Update the task definition with new image
+        sed "s|${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/shared-notes-api:latest|${{ steps.build-image.outputs.image }}|g" ${{ env.ECS_TASK_DEFINITION }} > task-definition-updated.json
+        
+        # Register new task definition
+        TASK_DEFINITION_ARN=$(aws ecs register-task-definition \
+          --cli-input-json file://task-definition-updated.json \
+          --query 'taskDefinition.taskDefinitionArn' \
+          --output text)
+        
+        echo "task-definition-arn=$TASK_DEFINITION_ARN" >> $GITHUB_OUTPUT
 
     - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
+      run: |
+        # Update ECS service with new task definition
+        aws ecs update-service \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --service ${{ env.ECS_SERVICE }} \
+          --task-definition ${{ steps.task-def.outputs.task-definition-arn }}
+        
+        # Wait for deployment to complete
+        echo "Waiting for service to stabilize..."
+        aws ecs wait services-stable \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --services ${{ env.ECS_SERVICE }}
 
     - name: Get service URL
       id: get-url
