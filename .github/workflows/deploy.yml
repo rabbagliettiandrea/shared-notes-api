@@ -12,7 +12,7 @@ env:
   ECR_REPOSITORY: shared-notes-api
   ECS_SERVICE: shared-notes-api-service
   ECS_CLUSTER: shared-notes-cluster
-  ECS_TASK_DEFINITION: ecs-task-definition.json
+  ECS_TASK_DEFINITION: ecs-task-definition.prod.json
   CONTAINER_NAME: shared-notes-api
   API_URL: https://d2w8ulo83u5tax.cloudfront.net
 
@@ -83,7 +83,7 @@ jobs:
 
     - name: Run Database Migrations
       run: |
-        echo "🔄 Running database migrations..."
+        echo "Running database migrations..."
         
         # Get database URL from AWS Secrets Manager
         DATABASE_URL=$(aws secretsmanager get-secret-value \
@@ -97,4 +97,4 @@ jobs:
           ${{ steps.build-image.outputs.image }} \
           alembic upgrade head
         
-        echo "✅ Database migrations completed successfully!"
+        echo "Database migrations completed successfully!"
