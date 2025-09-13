@@ -113,4 +113,4 @@ jobs:
         echo "🎉 Deployment completed successfully!"
         echo "🌐 API URL: ${{ steps.get-url.outputs.api_url }}"
         echo "📊 ECS Console: https://console.aws.amazon.com/ecs/home?region=${{ env.AWS_REGION }}#/clusters/${{ env.ECS_CLUSTER }}/services"
-        echo "🔍 Monitor logs: aws logs tail /ecs/shared-notes-api --follow --profile ${{ secrets.AWS_PROFILE }}"
+        echo "🔍 Monitor logs: aws logs tail /ecs/shared-notes-api --follow"

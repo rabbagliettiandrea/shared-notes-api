@@ -45,8 +45,8 @@
           "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:shared-notes/database-url"
         },
         {
-          "name": "VALKEY_URL",
-          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:shared-notes/valkey-url"
+          "name": "REDIS_URL",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:shared-notes/redis-url"
         },
         {
           "name": "SECRET_KEY",
