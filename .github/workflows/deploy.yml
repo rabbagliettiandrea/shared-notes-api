@@ -80,3 +80,21 @@ jobs:
         aws ecs wait services-stable \
           --cluster ${{ env.ECS_CLUSTER }} \
           --services ${{ env.ECS_SERVICE }}
+
+    - name: Run Database Migrations
+      run: |
+        echo "🔄 Running database migrations..."
+        
+        # Get database URL from AWS Secrets Manager
+        DATABASE_URL=$(aws secretsmanager get-secret-value \
+          --secret-id shared-notes/database-url \
+          --query 'SecretString' \
+          --output text)
+        
+        # Run migrations using Docker with the same image we just built
+        docker run --rm \
+          -e DATABASE_URL="$DATABASE_URL" \
+          ${{ steps.build-image.outputs.image }} \
+          alembic upgrade head
+        
+        echo "✅ Database migrations completed successfully!"
