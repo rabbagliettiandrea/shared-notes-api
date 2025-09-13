@@ -14,7 +14,8 @@ env:
   ECS_CLUSTER: shared-notes-cluster
   ECS_TASK_DEFINITION: ecs-task-definition.json
   CONTAINER_NAME: shared-notes-api
-
+  API_URL: https://d2w8ulo83u5tax.cloudfront.net
+  
 jobs:
   deploy:
     name: Deploy
@@ -91,7 +92,7 @@ jobs:
 
     - name: Test API endpoints
       run: |
-        API_URL=${{ steps.get-url.outputs.api_url }}
+        API_URL=${{ env.API_URL }}
         echo "Testing API at: $API_URL"
         
         # Wait for service to be ready
