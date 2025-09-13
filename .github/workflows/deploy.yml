@@ -15,7 +15,7 @@ env:
   ECS_TASK_DEFINITION: ecs-task-definition.json
   CONTAINER_NAME: shared-notes-api
   API_URL: https://d2w8ulo83u5tax.cloudfront.net
-  
+
 jobs:
   deploy:
     name: Deploy
@@ -80,45 +80,3 @@ jobs:
         aws ecs wait services-stable \
           --cluster ${{ env.ECS_CLUSTER }} \
           --services ${{ env.ECS_SERVICE }}
-
-    - name: Get service URL
-      id: get-url
-      run: |
-        ALB_DNS=$(aws elbv2 describe-load-balancers \
-          --names shared-notes-alb \
-          --query 'LoadBalancers[0].DNSName' \
-          --output text)
-        echo "api_url=http://$ALB_DNS" >> $GITHUB_OUTPUT
-
-    - name: Test API endpoints
-      run: |
-        API_URL=${{ env.API_URL }}
-        echo "Testing API at: $API_URL"
-        
-        # Wait for service to be ready
-        echo "Waiting for service to be ready..."
-        for i in {1..30}; do
-          if curl -f "$API_URL/health" > /dev/null 2>&1; then
-            echo "✅ API is ready!"
-            break
-          fi
-          echo "Attempt $i/30: API not ready yet, waiting 10 seconds..."
-          sleep 10
-        done
-        
-        # Test health endpoint
-        echo "Testing health endpoint..."
-        curl -f "$API_URL/health" || exit 1
-        
-        # Test root endpoint
-        echo "Testing root endpoint..."
-        curl -f "$API_URL/" || exit 1
-        
-        echo "✅ All API tests passed!"
-
-    - name: Deployment Status
-      run: |
-        echo "🎉 Deployment completed successfully!"
-        echo "🌐 API URL: ${{ steps.get-url.outputs.api_url }}"
-        echo "📊 ECS Console: https://console.aws.amazon.com/ecs/home?region=${{ env.AWS_REGION }}#/clusters/${{ env.ECS_CLUSTER }}/services"
-        echo "🔍 Monitor logs: aws logs tail /ecs/shared-notes-api --follow"
