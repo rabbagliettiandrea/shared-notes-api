@@ -1,21 +1,22 @@
 from pydantic_settings import BaseSettings
 from typing import List
 import os
+import json
 
 
 class Settings(BaseSettings):
-    DEBUG: bool
-    DATABASE_URL: str
-    REDIS_URL: str
-    SECRET_KEY: str
-    ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_DAYS: int
-    REFRESH_TOKEN_EXPIRE_DAYS: int
-    ALLOWED_HOSTS: str
+    DEBUG: bool = True
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5433/shared_notes"
+    REDIS_URL: str = "redis://localhost:6380"
+    SECRET_KEY: str = "dev-secret-key"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+    ALLOWED_HOSTS: str = "*"
     
-    class Config:
-        env_file = [".env"]
-        case_sensitive = True
-
+    @property
+    def allowed_hosts_list(self) -> List[str]:
+        return self.ALLOWED_HOSTS.split(",")
+    
 
 settings = Settings()
