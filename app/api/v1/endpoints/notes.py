@@ -344,6 +344,69 @@ async def get_all_tags(
     return tag_names
 
 
+@router.get("/shared", response_model=List[NoteResponse])
+async def get_shared_notes(
+    skip: int = Query(0, ge=0, description="Number of notes to skip"),
+    limit: int = Query(100, ge=1, le=100, description="Number of notes to return"),
+    search: str = Query(None, description="Search text in title and content"),
+    tags: str = Query(None, description="Comma-separated list of tag names to filter by"),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get notes shared with the current user"""
+    
+    # Build base query for shared notes only
+    query = (
+        select(Note)
+        .options(selectinload(Note.tags))
+        .join(NoteShare)
+        .where(NoteShare.user_id == current_user.id)
+    )
+    
+    # Apply search filter if provided
+    if search:
+        search_filter = or_(
+            Note.title.ilike(f"%{search}%"),
+            Note.content.ilike(f"%{search}%")
+        )
+        query = query.where(search_filter)
+    
+    # Apply tag filter if provided
+    if tags:
+        tag_names = [tag.strip().lower() for tag in tags.split(",") if tag.strip()]
+        if tag_names:
+            query = (
+                query
+                .join(Note.tags)
+                .where(Tag.name.in_(tag_names))
+                .distinct()
+            )
+    
+    # Apply pagination
+    query = query.offset(skip).limit(limit)
+    
+    # Execute query
+    result = await db.execute(query)
+    notes = result.scalars().all()
+    
+    # Convert to response format with tags as names
+    note_responses = []
+    for note in notes:
+        note_response = NoteResponse(
+            id=note.id,
+            title=note.title,
+            content=note.content,
+            is_public=note.is_public,
+            tags=tags_to_names(note.tags),
+            owner_id=note.owner_id,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
+        note_responses.append(note_response)
+    
+    return note_responses
+
+
 @router.get("/{note_id}", response_model=NoteResponse)
 async def get_note(
     note_id: int,
@@ -614,3 +677,4 @@ async def unshare_note(
     await db.commit()
     
     return {"message": f"Nota smessa di essere condivisa con l'utente {user_id}"}
+
