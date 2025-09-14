@@ -24,6 +24,11 @@ async def lifespan(app: FastAPI):
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     """Middleware to ensure HTTPS redirects use the correct protocol"""
     async def dispatch(self, request: Request, call_next):
+        # Only apply HTTPS logic in production (when DEBUG is False)
+        if settings.DEBUG:
+            response = await call_next(request)
+            return response
+        
         # Check if we're behind CloudFront or other proxy
         is_cloudfront = (
             "cloudfront" in request.headers.get("user-agent", "").lower() or
@@ -54,8 +59,8 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
                     request.scope["host"] = f"https://{host}"
         response = await call_next(request)
         
-        # If this is a redirect response, ensure it uses HTTPS
-        if response.status_code in [301, 302, 303, 307, 308]:
+        # If this is a redirect response, ensure it uses HTTPS (only in production)
+        if is_https and response.status_code in [301, 302, 303, 307, 308]:
             location = response.headers.get("location")
             if location:
                 # Handle both absolute and relative URLs
@@ -86,7 +91,7 @@ app.add_middleware(HTTPSRedirectMiddleware)
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_HOSTS.split(","),
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
