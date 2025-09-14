@@ -24,6 +24,13 @@ async def lifespan(app: FastAPI):
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     """Middleware to ensure HTTPS redirects use the correct protocol"""
     async def dispatch(self, request: Request, call_next):
+        # Check if we're behind CloudFront or other proxy
+        is_cloudfront = (
+            "cloudfront" in request.headers.get("user-agent", "").lower() or
+            "x-amz-cf-id" in request.headers or
+            "x-from-cloudfront" in request.headers
+        )
+        
         # Check if we're behind a proxy and the original request was HTTPS
         is_https = (
             request.headers.get("x-forwarded-proto") == "https" or
@@ -31,6 +38,11 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
             request.headers.get("x-forwarded-scheme") == "https" or
             request.headers.get("x-forwarded-port") == "443"
         )
+        
+        # Special case: if we're behind CloudFront and the request URL is HTTPS,
+        # but x-forwarded-proto is http, assume the original was HTTPS
+        if is_cloudfront and str(request.url).startswith("https://"):
+            is_https = True
         
         if is_https:
             # Force the request to use HTTPS scheme
@@ -40,8 +52,6 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
                 host = request.scope["host"]
                 if not host.startswith("https://"):
                     request.scope["host"] = f"https://{host}"
-        
-        request.scope["scheme"] = "https" # ANDREA: force https
         response = await call_next(request)
         
         # If this is a redirect response, ensure it uses HTTPS
