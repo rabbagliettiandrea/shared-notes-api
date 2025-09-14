@@ -103,29 +103,64 @@ async def create_note(
 async def get_notes(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
+    search: str = Query(None, description="Search text in title and content"),
+    tags: str = Query(None, description="Comma-separated list of tag names to filter by"),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get user's notes and notes shared with user"""
-    # Get user's own notes with tags
-    result = await db.execute(
+    """Get user's notes and notes shared with user with optional search and tag filtering"""
+    
+    # Build base query for user's own notes
+    own_notes_query = (
         select(Note)
         .options(selectinload(Note.tags))
         .where(Note.owner_id == current_user.id)
-        .offset(skip)
-        .limit(limit)
     )
-    own_notes = result.scalars().all()
     
-    # Get notes shared with user with tags
-    result = await db.execute(
+    # Build base query for shared notes
+    shared_notes_query = (
         select(Note)
         .options(selectinload(Note.tags))
         .join(NoteShare)
         .where(NoteShare.user_id == current_user.id)
-        .offset(skip)
-        .limit(limit)
     )
+    
+    # Apply text search filter if provided
+    if search:
+        search_filter = or_(
+            Note.title.ilike(f"%{search}%"),
+            Note.content.ilike(f"%{search}%")
+        )
+        own_notes_query = own_notes_query.where(search_filter)
+        shared_notes_query = shared_notes_query.where(search_filter)
+    
+    # Apply tag filter if provided
+    if tags:
+        tag_names = [tag.strip().lower() for tag in tags.split(",") if tag.strip()]
+        if tag_names:
+            # Join with tags table and filter by tag names
+            own_notes_query = (
+                own_notes_query
+                .join(Note.tags)
+                .where(Tag.name.in_(tag_names))
+                .distinct()
+            )
+            shared_notes_query = (
+                shared_notes_query
+                .join(Note.tags)
+                .where(Tag.name.in_(tag_names))
+                .distinct()
+            )
+    
+    # Apply pagination
+    own_notes_query = own_notes_query.offset(skip).limit(limit)
+    shared_notes_query = shared_notes_query.offset(skip).limit(limit)
+    
+    # Execute queries
+    result = await db.execute(own_notes_query)
+    own_notes = result.scalars().all()
+    
+    result = await db.execute(shared_notes_query)
     shared_notes = result.scalars().all()
     
     # Combine and return unique notes
@@ -154,16 +189,44 @@ async def get_notes(
 async def get_public_notes(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
+    search: str = Query(None, description="Search text in title and content"),
+    tags: str = Query(None, description="Comma-separated list of tag names to filter by"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all public notes"""
-    result = await db.execute(
+    """Get all public notes with optional search and tag filtering"""
+    
+    # Build base query for public notes
+    query = (
         select(Note)
         .options(selectinload(Note.tags))
         .where(Note.is_public == True)
-        .offset(skip)
-        .limit(limit)
     )
+    
+    # Apply text search filter if provided
+    if search:
+        search_filter = or_(
+            Note.title.ilike(f"%{search}%"),
+            Note.content.ilike(f"%{search}%")
+        )
+        query = query.where(search_filter)
+    
+    # Apply tag filter if provided
+    if tags:
+        tag_names = [tag.strip().lower() for tag in tags.split(",") if tag.strip()]
+        if tag_names:
+            # Join with tags table and filter by tag names
+            query = (
+                query
+                .join(Note.tags)
+                .where(Tag.name.in_(tag_names))
+                .distinct()
+            )
+    
+    # Apply pagination
+    query = query.offset(skip).limit(limit)
+    
+    # Execute query
+    result = await db.execute(query)
     notes = result.scalars().all()
     
     # Convert to response format with tags as names
@@ -182,6 +245,110 @@ async def get_public_notes(
         note_responses.append(note_response)
     
     return note_responses
+
+
+@router.get("/search", response_model=List[NoteResponse])
+async def search_notes(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    search: str = Query(None, description="Search text in title and content"),
+    tags: str = Query(None, description="Comma-separated list of tag names to filter by"),
+    is_public: bool = Query(None, description="Filter by public/private status"),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Advanced search for notes with multiple filters"""
+    
+    # Build base query for user's accessible notes (own + shared + public)
+    query = (
+        select(Note)
+        .options(selectinload(Note.tags))
+        .outerjoin(NoteShare, and_(Note.id == NoteShare.note_id, NoteShare.user_id == current_user.id))
+        .where(
+            or_(
+                Note.owner_id == current_user.id,  # User's own notes
+                NoteShare.user_id == current_user.id,  # Notes shared with user
+                Note.is_public == True  # Public notes
+            )
+        )
+    )
+    
+    # Apply text search filter if provided
+    if search:
+        search_filter = or_(
+            Note.title.ilike(f"%{search}%"),
+            Note.content.ilike(f"%{search}%")
+        )
+        query = query.where(search_filter)
+    
+    # Apply tag filter if provided
+    if tags:
+        tag_names = [tag.strip().lower() for tag in tags.split(",") if tag.strip()]
+        if tag_names:
+            # Join with tags table and filter by tag names
+            query = (
+                query
+                .join(Note.tags)
+                .where(Tag.name.in_(tag_names))
+                .distinct()
+            )
+    
+    # Apply public/private filter if provided
+    if is_public is not None:
+        query = query.where(Note.is_public == is_public)
+    
+    # Apply pagination
+    query = query.offset(skip).limit(limit)
+    
+    # Execute query
+    result = await db.execute(query)
+    notes = result.scalars().all()
+    
+    # Convert to response format with tags as names
+    note_responses = []
+    for note in notes:
+        note_response = NoteResponse(
+            id=note.id,
+            title=note.title,
+            content=note.content,
+            is_public=note.is_public,
+            tags=tags_to_names(note.tags),
+            owner_id=note.owner_id,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
+        note_responses.append(note_response)
+    
+    return note_responses
+
+
+@router.get("/tags", response_model=List[str])
+async def get_all_tags(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all available tags from user's accessible notes"""
+    
+    # Get tags from user's accessible notes (own + shared + public)
+    query = (
+        select(Tag.name)
+        .join(Note.tags)
+        .outerjoin(NoteShare, and_(Note.id == NoteShare.note_id, NoteShare.user_id == current_user.id))
+        .where(
+            or_(
+                Note.owner_id == current_user.id,  # User's own notes
+                NoteShare.user_id == current_user.id,  # Notes shared with user
+                Note.is_public == True  # Public notes
+            )
+        )
+        .distinct()
+        .order_by(Tag.name)
+    )
+    
+    result = await db.execute(query)
+    tag_names = [row[0] for row in result.fetchall()]
+    
+    return tag_names
 
 
 @router.get("/{note_id}", response_model=NoteResponse)
