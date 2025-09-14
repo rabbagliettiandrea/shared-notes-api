@@ -113,21 +113,6 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.get("/debug/headers")
-async def debug_headers(request: Request):
-    """Debug endpoint to check headers and request info"""
-    return {
-        "headers": dict(request.headers),
-        "url": str(request.url),
-        "scheme": request.scope.get("scheme"),
-        "host": request.scope.get("host"),
-        "path": request.scope.get("path"),
-        "query_string": request.scope.get("query_string").decode() if request.scope.get("query_string") else None,
-        "forwarded_proto": request.headers.get("x-forwarded-proto"),
-        "forwarded_ssl": request.headers.get("x-forwarded-ssl"),
-        "forwarded_scheme": request.headers.get("x-forwarded-scheme"),
-        "forwarded_port": request.headers.get("x-forwarded-port"),
-    }
 
 
 if __name__ == "__main__":
