@@ -24,6 +24,11 @@ async def lifespan(app: FastAPI):
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     """Middleware to ensure HTTPS redirects use the correct protocol"""
     async def dispatch(self, request: Request, call_next):
+
+        if settings.DEBUG:
+            response = await call_next(request)
+            return response
+        
         # Check if we're behind CloudFront or other proxy
         is_cloudfront = (
             "cloudfront" in request.headers.get("user-agent", "").lower() or
