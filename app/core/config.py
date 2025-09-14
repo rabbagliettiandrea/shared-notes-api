@@ -13,10 +13,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_DAYS: int = 7
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
     ALLOWED_HOSTS: str = "*"
-    
-    @property
-    def allowed_hosts_list(self) -> List[str]:
-        return self.ALLOWED_HOSTS.split(",")
-    
+
 
 settings = Settings()

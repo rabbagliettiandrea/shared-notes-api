@@ -1,8 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer
 from contextlib import asynccontextmanager
 import uvicorn
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.redis_client import init_redis
@@ -21,6 +23,21 @@ async def lifespan(app: FastAPI):
     pass
 
 
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """Middleware to ensure HTTPS redirects use the correct protocol"""
+    async def dispatch(self, request: Request, call_next):
+        # Check if we're behind a proxy and the original request was HTTPS
+        if request.headers.get("x-forwarded-proto") == "https":
+            # Force the request to use HTTPS scheme
+            request.scope["scheme"] = "https"
+        elif request.headers.get("x-forwarded-ssl") == "on":
+            # Alternative header for HTTPS detection
+            request.scope["scheme"] = "https"
+        
+        response = await call_next(request)
+        return response
+
+
 app = FastAPI(
     title="Shared Notes API",
     description="A RESTful API for taking and sharing notes",
@@ -28,7 +45,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_HOSTS.split(","),
@@ -36,6 +53,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add HTTPS redirect middleware for production
+if not settings.DEBUG:
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+# Add trusted host middleware for production
+if not settings.DEBUG:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"]  # Configure with your actual domains in production
+    )
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
@@ -56,5 +84,7 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True
+        reload=settings.DEBUG,
+        proxy_headers=True,  # Enable proxy headers support
+        forwarded_allow_ips="*"  # Allow forwarded headers from any IP
     )
