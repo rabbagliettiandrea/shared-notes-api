@@ -49,12 +49,12 @@
           "value": "HS256"
         },
         {
-          "name": "ACCESS_TOKEN_EXPIRE_MINUTES",
-          "value": "30"
+          "name": "ACCESS_TOKEN_EXPIRE_DAYS",
+          "value": "7"
         },
         {
           "name": "REFRESH_TOKEN_EXPIRE_DAYS",
-          "value": "7"
+          "value": "14"
         },
         {
           "name": "ALLOWED_HOSTS",

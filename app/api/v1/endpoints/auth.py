@@ -69,7 +69,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
         )
     
     # Create tokens
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
@@ -79,7 +79,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     redis_client = await get_redis()
     await redis_client.setex(
         f"access_token:{user.id}",
-        settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        int(timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS).total_seconds()),
         access_token
     )
     await redis_client.setex(
@@ -123,7 +123,7 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
         )
     
     # Create new access token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
@@ -131,7 +131,7 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
     # Update access token in Redis
     await redis_client.setex(
         f"access_token:{user.id}",
-        settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        int(timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS).total_seconds()),
         access_token
     )
     
