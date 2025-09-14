@@ -1,16 +1,55 @@
 from typing import List
+import json
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models.user import User
 from app.models.note import Note
 from app.models.note_share import NoteShare
+from app.models.tag import Tag
+from app.models.note_tag import note_tags
 from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse
 
 router = APIRouter()
+
+
+async def get_or_create_tags(tag_names: List[str], db: AsyncSession) -> List[Tag]:
+    """Get existing tags or create new ones"""
+    if not tag_names:
+        return []
+    
+    tags = []
+    for tag_name in tag_names:
+        tag_name = tag_name.strip().lower()
+        if not tag_name:
+            continue
+            
+        # Try to get existing tag
+        result = await db.execute(select(Tag).where(Tag.name == tag_name))
+        tag = result.scalar_one_or_none()
+        
+        if not tag:
+            # Create new tag
+            tag = Tag(name=tag_name)
+            db.add(tag)
+            await db.flush()  # Flush to get the ID
+        
+        tags.append(tag)
+    
+    return tags
+
+
+def tags_to_names(tags) -> List[str]:
+    """Convert Tag objects to list of tag names"""
+    if not tags:
+        return []
+    
+    # Convert SQLAlchemy relationship to list of tag names
+    return [tag.name for tag in tags]
 
 
 @router.post("/", response_model=NoteResponse)
@@ -20,16 +59,44 @@ async def create_note(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new note"""
+    # Get or create tags
+    tag_objects = await get_or_create_tags(note.tags or [], db)
+    
+    # Create note
     db_note = Note(
         title=note.title,
         content=note.content,
         is_public=note.is_public,
         owner_id=current_user.id
     )
+    
+    # Associate tags with note
+    db_note.tags = tag_objects
+    
     db.add(db_note)
     await db.commit()
     await db.refresh(db_note)
-    return db_note
+    
+    # Reload the note with tags to avoid lazy loading issues
+    result = await db.execute(
+        select(Note)
+        .options(selectinload(Note.tags))
+        .where(Note.id == db_note.id)
+    )
+    note_with_tags = result.scalar_one()
+    
+    # Convert tags back to names for response
+    note_response = NoteResponse(
+        id=note_with_tags.id,
+        title=note_with_tags.title,
+        content=note_with_tags.content,
+        is_public=note_with_tags.is_public,
+        tags=tags_to_names(note_with_tags.tags),
+        owner_id=note_with_tags.owner_id,
+        created_at=note_with_tags.created_at,
+        updated_at=note_with_tags.updated_at
+    )
+    return note_response
 
 
 @router.get("/", response_model=List[NoteResponse])
@@ -40,18 +107,20 @@ async def get_notes(
     db: AsyncSession = Depends(get_db)
 ):
     """Get user's notes and notes shared with user"""
-    # Get user's own notes
+    # Get user's own notes with tags
     result = await db.execute(
         select(Note)
+        .options(selectinload(Note.tags))
         .where(Note.owner_id == current_user.id)
         .offset(skip)
         .limit(limit)
     )
     own_notes = result.scalars().all()
     
-    # Get notes shared with user
+    # Get notes shared with user with tags
     result = await db.execute(
         select(Note)
+        .options(selectinload(Note.tags))
         .join(NoteShare)
         .where(NoteShare.user_id == current_user.id)
         .offset(skip)
@@ -63,7 +132,22 @@ async def get_notes(
     all_notes = list(own_notes) + list(shared_notes)
     unique_notes = list({note.id: note for note in all_notes}.values())
     
-    return unique_notes
+    # Convert to response format with tags as names
+    note_responses = []
+    for note in unique_notes:
+        note_response = NoteResponse(
+            id=note.id,
+            title=note.title,
+            content=note.content,
+            is_public=note.is_public,
+            tags=tags_to_names(note.tags),
+            owner_id=note.owner_id,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
+        note_responses.append(note_response)
+    
+    return note_responses
 
 
 @router.get("/public", response_model=List[NoteResponse])
@@ -75,12 +159,29 @@ async def get_public_notes(
     """Get all public notes"""
     result = await db.execute(
         select(Note)
+        .options(selectinload(Note.tags))
         .where(Note.is_public == True)
         .offset(skip)
         .limit(limit)
     )
     notes = result.scalars().all()
-    return notes
+    
+    # Convert to response format with tags as names
+    note_responses = []
+    for note in notes:
+        note_response = NoteResponse(
+            id=note.id,
+            title=note.title,
+            content=note.content,
+            is_public=note.is_public,
+            tags=tags_to_names(note.tags),
+            owner_id=note.owner_id,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
+        note_responses.append(note_response)
+    
+    return note_responses
 
 
 @router.get("/{note_id}", response_model=NoteResponse)
@@ -92,32 +193,64 @@ async def get_note(
     """Get a specific note by ID"""
     # Check if user owns the note
     result = await db.execute(
-        select(Note).where(and_(Note.id == note_id, Note.owner_id == current_user.id))
+        select(Note)
+        .options(selectinload(Note.tags))
+        .where(and_(Note.id == note_id, Note.owner_id == current_user.id))
     )
     note = result.scalar_one_or_none()
     
     if note:
-        return note
+        return NoteResponse(
+            id=note.id,
+            title=note.title,
+            content=note.content,
+            is_public=note.is_public,
+            tags=tags_to_names(note.tags),
+            owner_id=note.owner_id,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
     
     # Check if note is shared with user
     result = await db.execute(
         select(Note)
+        .options(selectinload(Note.tags))
         .join(NoteShare)
         .where(and_(Note.id == note_id, NoteShare.user_id == current_user.id))
     )
     note = result.scalar_one_or_none()
     
     if note:
-        return note
+        return NoteResponse(
+            id=note.id,
+            title=note.title,
+            content=note.content,
+            is_public=note.is_public,
+            tags=tags_to_names(note.tags),
+            owner_id=note.owner_id,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
     
     # Check if note is public
     result = await db.execute(
-        select(Note).where(and_(Note.id == note_id, Note.is_public == True))
+        select(Note)
+        .options(selectinload(Note.tags))
+        .where(and_(Note.id == note_id, Note.is_public == True))
     )
     note = result.scalar_one_or_none()
     
     if note:
-        return note
+        return NoteResponse(
+            id=note.id,
+            title=note.title,
+            content=note.content,
+            is_public=note.is_public,
+            tags=tags_to_names(note.tags),
+            owner_id=note.owner_id,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
     
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -135,7 +268,9 @@ async def update_note(
     """Update a note (only owner or users with write permission)"""
     # Check if user owns the note
     result = await db.execute(
-        select(Note).where(and_(Note.id == note_id, Note.owner_id == current_user.id))
+        select(Note)
+        .options(selectinload(Note.tags))
+        .where(and_(Note.id == note_id, Note.owner_id == current_user.id))
     )
     note = result.scalar_one_or_none()
     
@@ -158,7 +293,11 @@ async def update_note(
             )
         
         # Get the note
-        result = await db.execute(select(Note).where(Note.id == note_id))
+        result = await db.execute(
+            select(Note)
+            .options(selectinload(Note.tags))
+            .where(Note.id == note_id)
+        )
         note = result.scalar_one_or_none()
     
     if not note:
@@ -169,12 +308,32 @@ async def update_note(
     
     # Update note fields
     update_data = note_update.dict(exclude_unset=True)
+    
+    # Handle tags separately
+    if 'tags' in update_data:
+        tag_objects = await get_or_create_tags(update_data['tags'] or [], db)
+        note.tags = tag_objects
+        del update_data['tags']
+    
+    # Update other fields
     for field, value in update_data.items():
         setattr(note, field, value)
     
     await db.commit()
     await db.refresh(note)
-    return note
+    
+    # Return response with tags as names
+    note_response = NoteResponse(
+        id=note.id,
+        title=note.title,
+        content=note.content,
+        is_public=note.is_public,
+        tags=tags_to_names(note.tags),
+        owner_id=note.owner_id,
+        created_at=note.created_at,
+        updated_at=note.updated_at
+    )
+    return note_response
 
 
 @router.delete("/{note_id}")

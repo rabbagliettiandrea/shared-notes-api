@@ -18,3 +18,4 @@ class Note(Base):
     # Relationships
     owner = relationship("User", back_populates="notes")
     shared_with = relationship("NoteShare", back_populates="note", cascade="all, delete-orphan")
+    tags = relationship("Tag", secondary="note_tags", back_populates="notes")

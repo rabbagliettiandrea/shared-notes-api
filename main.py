@@ -5,15 +5,16 @@ from contextlib import asynccontextmanager
 import uvicorn
 
 from app.core.config import settings
-from app.core.database import init_db
 from app.core.redis_client import init_redis
 from app.api.v1.api import api_router
+# Import models to ensure tables are created
+from app.models import User, Note, NoteShare, Tag, note_tags
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await init_db()
+    # Note: Database tables are managed by Alembic migrations
     await init_redis()
     yield
     # Shutdown

@@ -18,7 +18,6 @@ from app.core.redis_client import get_redis
 from app.models.user import User
 from app.schemas.auth import Token
 from app.schemas.user import UserCreate, UserResponse
-import redis.asyncio as redis
 
 router = APIRouter()
 
@@ -84,7 +83,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     )
     await redis_client.setex(
         f"refresh_token:{user.id}",
-        settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds()),
         refresh_token
     )
     
