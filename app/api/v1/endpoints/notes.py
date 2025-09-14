@@ -327,20 +327,13 @@ async def get_all_tags(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all available tags from user's accessible notes"""
+    """Get all available tags from user's own notes only"""
     
-    # Get tags from user's accessible notes (own + shared + public)
+    # Get tags only from user's own notes
     query = (
         select(Tag.name)
         .join(Note.tags)
-        .outerjoin(NoteShare, and_(Note.id == NoteShare.note_id, NoteShare.user_id == current_user.id))
-        .where(
-            or_(
-                Note.owner_id == current_user.id,  # User's own notes
-                NoteShare.user_id == current_user.id,  # Notes shared with user
-                Note.is_public == True  # Public notes
-            )
-        )
+        .where(Note.owner_id == current_user.id)  # Only user's own notes
         .distinct()
         .order_by(Tag.name)
     )
