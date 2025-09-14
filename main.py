@@ -1,16 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.security import HTTPBearer
-from contextlib import asynccontextmanager
 import uvicorn
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.redis_client import init_redis
 from app.api.v1.api import api_router
-# Import models to ensure tables are created
-from app.models import User, Note, NoteShare, Tag, note_tags
 
 
 @asynccontextmanager
@@ -27,14 +25,41 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     """Middleware to ensure HTTPS redirects use the correct protocol"""
     async def dispatch(self, request: Request, call_next):
         # Check if we're behind a proxy and the original request was HTTPS
-        if request.headers.get("x-forwarded-proto") == "https":
+        is_https = (
+            request.headers.get("x-forwarded-proto") == "https" or
+            request.headers.get("x-forwarded-ssl") == "on" or
+            request.headers.get("x-forwarded-scheme") == "https" or
+            request.headers.get("x-forwarded-port") == "443"
+        )
+        
+        if is_https:
             # Force the request to use HTTPS scheme
             request.scope["scheme"] = "https"
-        elif request.headers.get("x-forwarded-ssl") == "on":
-            # Alternative header for HTTPS detection
-            request.scope["scheme"] = "https"
+            # Also set the host to use HTTPS
+            if "host" in request.scope:
+                host = request.scope["host"]
+                if not host.startswith("https://"):
+                    request.scope["host"] = f"https://{host}"
         
+        request.scope["scheme"] = "https" # ANDREA: force https
         response = await call_next(request)
+        
+        # If this is a redirect response, ensure it uses HTTPS
+        if response.status_code in [301, 302, 303, 307, 308]:
+            location = response.headers.get("location")
+            if location:
+                # Handle both absolute and relative URLs
+                if location.startswith("http://"):
+                    # Replace http:// with https:// in the location header
+                    https_location = location.replace("http://", "https://", 1)
+                    response.headers["location"] = https_location
+                elif location.startswith("/") and is_https:
+                    # For relative URLs, construct the full HTTPS URL
+                    host = request.headers.get("host", "")
+                    if host:
+                        https_location = f"https://{host}{location}"
+                        response.headers["location"] = https_location
+        
         return response
 
 
@@ -45,6 +70,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Add HTTPS redirect middleware FIRST (always active to handle proxy scenarios)
+app.add_middleware(HTTPSRedirectMiddleware)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -53,10 +81,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Add HTTPS redirect middleware for production
-if not settings.DEBUG:
-    app.add_middleware(HTTPSRedirectMiddleware)
 
 # Add trusted host middleware for production
 if not settings.DEBUG:
@@ -77,6 +101,23 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/debug/headers")
+async def debug_headers(request: Request):
+    """Debug endpoint to check headers and request info"""
+    return {
+        "headers": dict(request.headers),
+        "url": str(request.url),
+        "scheme": request.scope.get("scheme"),
+        "host": request.scope.get("host"),
+        "path": request.scope.get("path"),
+        "query_string": request.scope.get("query_string").decode() if request.scope.get("query_string") else None,
+        "forwarded_proto": request.headers.get("x-forwarded-proto"),
+        "forwarded_ssl": request.headers.get("x-forwarded-ssl"),
+        "forwarded_scheme": request.headers.get("x-forwarded-scheme"),
+        "forwarded_port": request.headers.get("x-forwarded-port"),
+    }
 
 
 if __name__ == "__main__":
