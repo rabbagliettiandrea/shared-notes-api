@@ -45,10 +45,6 @@
       "essential": true,
       "environment": [
         {
-          "name": "ALLOWED_HOSTS",
-          "value": "d3e671tppt51wm.cloudfront.net"
-        },
-        {
           "name": "DEBUG",
           "value": "false"
         }
