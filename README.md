@@ -80,6 +80,8 @@ L'API sarà disponibile su `http://localhost:8000`
 - Test di condivisione
 - Esempi di ricerca e filtri
 
+Su Postman, è necessario importare selezionare il giusto environment che riporti la `base_url` corretta
+
 ### Documentazione API
 
 - **Swagger UI**: `http://localhost:8000/docs`
