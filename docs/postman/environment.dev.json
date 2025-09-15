@@ -1,0 +1,51 @@
+{
+	"id": "bcf49c87-f622-41b0-af4a-f1dac021c0d6",
+	"name": "Shared Notes - Environment DEV",
+	"values": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api/v1",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "pippo_access_token",
+			"value": "",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "pippo_refresh_token",
+			"value": "",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "pluto_access_token",
+			"value": "",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "pluto_refresh_token",
+			"value": "",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "paperino_access_token",
+			"value": "",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "paperino_refresh_token",
+			"value": "",
+			"type": "secret",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2025-09-15T14:09:44.132Z",
+	"_postman_exported_using": "Postman/11.62.8"
+}

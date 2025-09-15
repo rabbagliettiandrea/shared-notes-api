@@ -1,0 +1,653 @@
+{
+	"info": {
+		"_postman_id": "shared-notes-api-collection",
+		"name": "Shared Notes API - Collection Completa",
+		"description": "Collection completa per l'API Shared Notes con utenti di default e dati di test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Autenticazione",
+			"item": [
+				{
+					"name": "Registra Utente - pippo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"pippo\",\n    \"password\": \"pippo123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Registra Utente - pluto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"pluto\",\n    \"password\": \"pluto123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Registra Utente - paperino",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"paperino\",\n    \"password\": \"paperino123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login - pippo",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('pippo_access_token', response.access_token);",
+									"    pm.environment.set('pippo_refresh_token', response.refresh_token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "pippo"
+								},
+								{
+									"key": "password",
+									"value": "pippo123"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - pluto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('pluto_access_token', response.access_token);",
+									"    pm.environment.set('pluto_refresh_token', response.refresh_token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "pluto"
+								},
+								{
+									"key": "password",
+									"value": "pluto123"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - paperino",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('paperino_access_token', response.access_token);",
+									"    pm.environment.set('paperino_refresh_token', response.refresh_token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "paperino"
+								},
+								{
+									"key": "password",
+									"value": "paperino123"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Note - Pippo",
+			"item": [
+				{
+					"name": "Crea Nota - Ricette di Cucina",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pippo_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Ricette di Cucina\",\n    \"content\": \"# Ricette Preferite\\n\\n## Pasta alla Carbonara\\n- 400g spaghetti\\n- 200g guanciale\\n- 4 uova\\n- 100g pecorino romano\\n- Pepe nero\\n\\n## Risotto ai Funghi\\n- 320g riso carnaroli\\n- 300g funghi porcini\\n- 1 cipolla\\n- 1 litro brodo vegetale\\n- 80g parmigiano\",\n    \"tags\": [\"cucina\", \"ricette\", \"italiano\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Crea Nota - Progetti Lavoro",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pippo_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Progetti Lavoro 2024\",\n    \"content\": \"# Progetti in Corso\\n\\n## Progetto Alpha\\n- Deadline: 15 marzo\\n- Team: 5 persone\\n- Budget: €50.000\\n\\n## Progetto Beta\\n- Deadline: 30 aprile\\n- Team: 3 persone\\n- Budget: €25.000\\n\\n## Note\\nRicordarsi di aggiornare il Gantt ogni settimana\",\n    \"tags\": [\"lavoro\", \"progetti\", \"2024\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Crea Nota - Viaggi",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pippo_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Pianificazione Viaggi 2024\",\n    \"content\": \"# Destinazioni da Visitare\\n\\n## Europa\\n- Parigi (primavera)\\n- Amsterdam (estate)\\n- Praga (autunno)\\n\\n## Asia\\n- Tokyo (inverno)\\n- Bangkok (primavera)\\n\\n## Budget Totale\\n€8.000 per l'anno\",\n    \"tags\": [\"viaggi\", \"vacanze\", \"2024\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Note - Pluto",
+			"item": [
+				{
+					"name": "Crea Nota - Fitness e Allenamento",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pluto_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Programma Fitness 2024\",\n    \"content\": \"# Allenamento Settimanale\\n\\n## Lunedì - Petto e Tricipiti\\n- Panca piana: 4x8\\n- Panca inclinata: 3x10\\n- Dip: 3x12\\n\\n## Mercoledì - Schiena e Bicipiti\\n- Trazioni: 4x8\\n- Remata: 3x10\\n- Curl: 3x12\\n\\n## Venerdì - Gambe\\n- Squat: 4x8\\n- Stacco: 3x5\\n- Affondi: 3x12\",\n    \"tags\": [\"fitness\", \"allenamento\", \"palestra\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Crea Nota - Tecnologia",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pluto_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Tecnologie da Imparare\",\n    \"content\": \"# Stack Tecnologico 2024\\n\\n## Frontend\\n- React 18\\n- TypeScript\\n- Next.js 14\\n\\n## Backend\\n- Node.js\\n- FastAPI\\n- PostgreSQL\\n\\n## DevOps\\n- Docker\\n- Kubernetes\\n- AWS\\n\\n## Obiettivi\\nCompletare almeno 2 progetti per ogni tecnologia\",\n    \"tags\": [\"tecnologia\", \"programmazione\", \"apprendimento\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Crea Nota - Libri da Leggere",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pluto_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Lista Libri 2024\",\n    \"content\": \"# Libri da Leggere\\n\\n## Romanzi\\n- Il Nome della Rosa (Umberto Eco)\\n- 1984 (George Orwell)\\n- Il Signore degli Anelli (Tolkien)\\n\\n## Saggistica\\n- Sapiens (Yuval Harari)\\n- Thinking Fast and Slow (Kahneman)\\n\\n## Tecnologia\\n- Clean Code (Robert Martin)\\n- Design Patterns (Gang of Four)\",\n    \"tags\": [\"libri\", \"lettura\", \"cultura\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Note - Paperino",
+			"item": [
+				{
+					"name": "Crea Nota - Finanze Personali",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{paperino_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Budget Mensile 2024\",\n    \"content\": \"# Finanze Personali\\n\\n## Entrate\\n- Stipendio: €2.500\\n- Freelance: €500\\n\\n## Spese Fisse\\n- Affitto: €800\\n- Bollette: €150\\n- Spesa: €300\\n- Trasporti: €100\\n\\n## Risparmio\\n- Obiettivo: €1.000/mese\\n- Fondo emergenza: €5.000\",\n    \"tags\": [\"finanze\", \"budget\", \"risparmio\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Crea Nota - Hobby e Passioni",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{paperino_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"I Miei Hobby\",\n    \"content\": \"# Passioni e Hobby\\n\\n## Fotografia\\n- Canon EOS R5\\n- Obiettivi: 24-70mm, 70-200mm\\n- Corso avanzato in programma\\n\\n## Giardinaggio\\n- Orto sul balcone\\n- Piante aromatiche\\n- Pomodori e basilico\\n\\n## Musica\\n- Chitarra acustica\\n- Imparare il piano\\n- Concerti da vedere\",\n    \"tags\": [\"hobby\", \"passioni\", \"tempo-libero\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Crea Nota - Appuntamenti",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{paperino_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Appuntamenti Importanti\",\n    \"content\": \"# Calendario 2024\\n\\n## Gennaio\\n- 15: Visita dentista\\n- 20: Cena con amici\\n\\n## Febbraio\\n- 14: San Valentino\\n- 25: Compleanno mamma\\n\\n## Marzo\\n- 8: Festa della donna\\n- 15: Scadenza tasse\\n\\n## Note\\nRicordarsi di prenotare ristorante per San Valentino\",\n    \"tags\": [\"appuntamenti\", \"calendario\", \"importante\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Condivisioni",
+			"item": [
+				{
+					"name": "Condividi Nota - Pippo condivide con Pluto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pippo_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/4/share?user_id=4",
+							"host": ["{{base_url}}"],
+							"path": ["notes", "1", "share"],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "2"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Condividi Nota - Pluto condivide con Paperino",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pluto_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/7/share?user_id=5",
+							"host": ["{{base_url}}"],
+							"path": ["notes", "4", "share"],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "3"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Condividi Nota - Paperino condivide con Pippo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{paperino_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/10/share?user_id=3",
+							"host": ["{{base_url}}"],
+							"path": ["notes", "7", "share"],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Test e Verifica",
+			"item": [
+				{
+					"name": "Ottieni Note di Pippo",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pippo_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Ottieni Note di Pluto",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pluto_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Ottieni Note di Paperino",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{paperino_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""]
+						}
+					}
+				},
+				{
+					"name": "Cerca Note per Tag - cucina",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pippo_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/?tags=cucina",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""],
+							"query": [
+								{
+									"key": "tags",
+									"value": "cucina"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Cerca Note per Testo - ricette",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{pippo_access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notes/?search=ricette",
+							"host": ["{{base_url}}"],
+							"path": ["notes", ""],
+							"query": [
+								{
+									"key": "search",
+									"value": "ricette"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api/v1",
+			"type": "string"
+		}
+	]
+}
