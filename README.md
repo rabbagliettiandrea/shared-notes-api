@@ -49,12 +49,17 @@ cd shared-notes-api
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-3. **Esegui le migrazioni sul DB**:
+3. **Attendi che tutti i servizi siano disponibili**
+```bash
+docker compose -f docker-compose.dev.yml ps
+```
+
+4. **Esegui le migrazioni sul DB**:
 ```bash
 docker compose -f docker-compose.dev.yml exec api alembic upgrade head
 ```
 
-4. **Verifica l'installazione**:
+5. **Verifica l'installazione**:
 ```bash
 curl http://localhost:8000/health
 ```
